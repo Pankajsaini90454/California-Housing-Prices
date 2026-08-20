@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Predict Mumbai Housing Prices</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead__grid" aria-hidden="true"></div>
+  <div class="masthead__inner">
+    <p class="eyebrow">Coordinate-based valuation &middot; Field Notebook No. 09</p>
+    <h1>Estimate a Mumbai House market value</h1>
+    <p class="masthead__sub">Enter a parcel's location and census-block statistics. The model reads the numbers the way a surveyor reads a plat &mdash; and returns an appraised figure.</p>
+  </div>
+</header>
+
+<main class="sheet">
+  <form class="card ledger" action="{{ url_for('predict') }}" method="POST" novalidate>
+
+    <fieldset class="ledger__section">
+      <legend><span class="legend__index">01</span> Location</legend>
+      <div class="field-row">
+        <label for="longitude">Longitude
+          <span class="hint">&minus;124.35 to &minus;114.31</span>
+          <input type="number" step="any" id="longitude" name="longitude" required
+                 value="{{ form_values.longitude }}" placeholder="-119.57">
+        </label>
+        <label for="latitude">Latitude
+          <span class="hint">32.54 to 41.95</span>
+          <input type="number" step="any" id="latitude" name="latitude" required
+                 value="{{ form_values.latitude }}" placeholder="35.63">
+        </label>
+      </div>
+      <label for="ocean_proximity">Ocean proximity
+        <select id="ocean_proximity" name="ocean_proximity" required>
+          {% for opt in options %}
+          <option value="{{ opt }}" {% if form_values.ocean_proximity == opt %}selected{% endif %}>{{ opt }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </fieldset>
+
+    <fieldset class="ledger__section">
+      <legend><span class="legend__index">02</span> Structure</legend>
+      <div class="field-row">
+        <label for="housing_median_age">Median building age
+          <span class="hint">years, block group</span>
+          <input type="number" step="1" min="0" id="housing_median_age" name="housing_median_age" required
+                 value="{{ form_values.housing_median_age }}" placeholder="28">
+        </label>
+      </div>
+      <div class="field-row">
+        <label for="total_rooms">Total rooms
+          <span class="hint">block total</span>
+          <input type="number" step="1" min="0" id="total_rooms" name="total_rooms" required
+                 value="{{ form_values.total_rooms }}" placeholder="2127">
+        </label>
+        <label for="total_bedrooms">Total bedrooms
+          <span class="hint">block total</span>
+          <input type="number" step="1" min="0" id="total_bedrooms" name="total_bedrooms" required
+                 value="{{ form_values.total_bedrooms }}" placeholder="435">
+        </label>
+      </div>
+    </fieldset>
+
+    <fieldset class="ledger__section">
+      <legend><span class="legend__index">03</span> Community</legend>
+      <div class="field-row">
+        <label for="population">Population
+          <span class="hint">block total</span>
+          <input type="number" step="1" min="0" id="population" name="population" required
+                 value="{{ form_values.population }}" placeholder="1166">
+        </label>
+        <label for="households">Households
+          <span class="hint">block total</span>
+          <input type="number" step="1" min="0" id="households" name="households" required
+                 value="{{ form_values.households }}" placeholder="409">
+        </label>
+      </div>
+      <label for="median_income">Median income
+        <span class="hint">tens of thousands USD, e.g. 3.53 &rarr; $35,300</span>
+        <input type="number" step="any" min="0" id="median_income" name="median_income" required
+               value="{{ form_values.median_income }}" placeholder="3.53">
+      </label>
+    </fieldset>
+
+    <button type="submit" class="stamp-button">Appraise parcel</button>
+  </form>
+
+  <aside class="card readout">
+    {% if error %}
+      <p class="readout__eyebrow readout__eyebrow--error">Could not appraise</p>
+      <p class="readout__error">{{ error }}</p>
+      <p class="readout__note">Check the field above and submit again.</p>
+    {% elif result %}
+      <p class="readout__eyebrow">Appraised value</p>
+      <p class="readout__value">${{ "{:,.0f}".format(result) }}</p>
+      <div class="stamp" aria-hidden="true">APPRAISED</div>
+      <dl class="readout__meta">
+        <div><dt>Coordinates</dt><dd>{{ form_values.latitude }}&deg; N, {{ form_values.longitude }}&deg; W</dd></div>
+        <div><dt>Ocean proximity</dt><dd>{{ form_values.ocean_proximity }}</dd></div>
+        <div><dt>Median income</dt><dd>${{ "{:,.0f}".format(form_values.median_income|float * 10000) }}</dd></div>
+      </dl>
+      <p class="readout__note">Estimate from a random forest model trained on 1990 California census data. Treat as a reference point, not a listing price.</p>
+    {% else %}
+      <p class="readout__eyebrow">Awaiting entry</p>
+      <p class="readout__placeholder">Fill in the parcel's coordinates and census-block statistics, then appraise. The result prints here.</p>
+      <svg class="contour-mark" viewBox="0 0 160 160" aria-hidden="true">
+        <circle cx="80" cy="80" r="70" fill="none" stroke="currentColor" stroke-width="1" opacity="0.25"/>
+        <circle cx="80" cy="80" r="52" fill="none" stroke="currentColor" stroke-width="1" opacity="0.35"/>
+        <circle cx="80" cy="80" r="34" fill="none" stroke="currentColor" stroke-width="1" opacity="0.45"/>
+        <circle cx="80" cy="80" r="16" fill="none" stroke="currentColor" stroke-width="1" opacity="0.6"/>
+      </svg>
+    {% endif %}
+  </aside>
+</main>
+
+<footer class="foot">
+  <p>Model: RandomForestRegressor &middot; Source: 1990 California census block groups</p>
+</footer>
+
+</body>
+</html>
